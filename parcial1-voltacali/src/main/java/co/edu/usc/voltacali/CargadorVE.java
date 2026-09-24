@@ -16,7 +16,7 @@ public class CargadorVE {
     private double potenciaActual;
     private String bitacora;
 
-    /* ENUMS ACTUALIZADOS */
+    /* ENUMS */
 
     public enum TipoConector {
         TIPO_1,
@@ -48,7 +48,6 @@ public class CargadorVE {
 
     /* CONSTRUCTORES */
 
-    // 1. Constructor completo (9 parámetros)
     public CargadorVE(String fabricante, int anioInstalacion, int voltajeNominal, TipoConector tipoConector,
             TipoCargador tipoCargador, int numeroConectores, int puestosParqueo, double potenciaMaxima,
             Ubicacion ubicacion) {
@@ -65,12 +64,10 @@ public class CargadorVE {
         this.bitacora = "";
     }
 
-    // 2. Constructor reducido
     public CargadorVE(String fabricante, int anioInstalacion, double potenciaMaxima) {
         this(fabricante, anioInstalacion, 220, TipoConector.TIPO_2, TipoCargador.PEDESTAL, 1, 1, potenciaMaxima, Ubicacion.PARQUEADERO_PUBLICO);
     }
 
-    // 3. Constructor copia
     public CargadorVE(CargadorVE otro) {
         this.fabricante = otro.fabricante;
         this.anioInstalacion = otro.anioInstalacion;
@@ -171,51 +168,70 @@ public class CargadorVE {
         return bitacora;
     }
 
-    /* MÉTODOS AUMENTAR POTENCIA */
+    /* PARTE B: COMPORTAMIENTO BASE Y MÉTODOS DE POTENCIA */
 
     public void aumentarPotencia() {
         aumentarPotencia(INCREMENTO_DEFECTO);
     }
 
     public void aumentarPotencia(double incremento) {
-        if (this.potenciaActual + incremento <= this.potenciaMaxima) {
+        if (this.potenciaActual + incremento > this.potenciaMaxima) {
+            System.out.println("Error: No se puede aumentar la potencia. Superaría la potencia máxima permida (" + this.potenciaMaxima + " kW).");
+        } else {
             this.potenciaActual += incremento;
         }
     }
 
     public void aumentarPotencia(double incremento, int veces) {
-        for (int i = 0; i < veces; i++) {
-            if (this.potenciaActual + incremento <= this.potenciaMaxima) {
-                this.potenciaActual += incremento;
-            } else {
-                break;
-            }
+        double totalIncremento = incremento * veces;
+        if (this.potenciaActual + totalIncremento > this.potenciaMaxima) {
+            System.out.println("Error: No se puede aplicar el incremento acumulado. Superaría la potencia máxima permida (" + this.potenciaMaxima + " kW).");
+        } else {
+            this.potenciaActual += totalIncremento;
         }
     }
 
-    /* MÉTODOS TIEMPO ESTIMADO CARGA */
+    public void reducirPotencia(double decremento) {
+        if (this.potenciaActual - decremento < 0) {
+            System.out.println("Error: No se puede reducir la potencia. El resultado no puede ser negativo.");
+        } else {
+            this.potenciaActual -= decremento;
+        }
+    }
+
+    public void cortarCarga() {
+        this.potenciaActual = 0.0;
+        System.out.println("Carga cortada. Potencia actual establecida en 0.0 kW.");
+    }
+
+    /* TIEMPO ESTIMADO CARGA (SOBRECARGAS) */
 
     public double tiempoEstimadoCarga(double energiaKWh) {
         if (this.potenciaActual <= 0) {
-            return 0.0;
+            System.out.println("Error: La potencia actual es 0 kW. No se puede calcular el tiempo estimado.");
+            return -1.0;
         }
         return energiaKWh / this.potenciaActual;
     }
 
     public double tiempoEstimadoCarga(double energiaKWh, double potenciaProgramada) {
         if (potenciaProgramada <= 0) {
-            return 0.0;
+            System.out.println("Error: La potencia programada es 0 kW o menor. No se puede calcular el tiempo estimado.");
+            return -1.0;
         }
         return energiaKWh / potenciaProgramada;
     }
 
     public double tiempoEstimadoCarga(double energiaKWh, int pausas, double minutosPorPausa) {
         double tiempoBase = tiempoEstimadoCarga(energiaKWh);
-        double tiempoPausas = (pausas * minutosPorPausa) / 60.0;
-        return tiempoBase + tiempoPausas;
+        if (tiempoBase == -1.0) {
+            return -1.0;
+        }
+        double tiempoPausasHoras = (pausas * minutosPorPausa) / 60.0;
+        return tiempoBase + tiempoPausasHoras;
     }
 
-    /* MÉTODOS FILTRAR (ESTÁTICOS) */
+    /* MÉTODOS ESTÁTICOS FILTRAR */
 
     public static CargadorVE[] filtrar(CargadorVE[] cargadores, TipoConector conector) {
         int contador = 0;
@@ -281,19 +297,20 @@ public class CargadorVE {
     }
 
     public void mostrar(boolean detallado) {
+        System.out.println("=== CargadorVE ===");
         System.out.println("Fabricante: " + fabricante);
-        System.out.println("Año: " + anioInstalacion);
-        System.out.println("Voltaje: " + voltajeNominal);
+        System.out.println("Año Instalación: " + anioInstalacion);
+        System.out.println("Voltaje Nominal: " + voltajeNominal + " V");
         System.out.println("Tipo Conector: " + tipoConector);
         System.out.println("Tipo Cargador: " + tipoCargador);
-        System.out.println("Conectores: " + numeroConectores);
-        System.out.println("Puestos: " + puestosParqueo);
-        System.out.println("Potencia Máxima: " + potenciaMaxima);
-        System.out.println("Potencia Actual: " + potenciaActual);
+        System.out.println("Número Conectores: " + numeroConectores);
+        System.out.println("Puestos Parqueo: " + puestosParqueo);
+        System.out.println("Potencia Máxima: " + potenciaMaxima + " kW");
+        System.out.println("Potencia Actual: " + potenciaActual + " kW");
         System.out.println("Ubicación: " + ubicacion);
 
         if (detallado) {
-            System.out.println("Bitácora: " + bitacora);
+            System.out.println("Bitácora: " + (bitacora.isEmpty() ? "(Sin registros)" : bitacora));
         }
     }
 }
