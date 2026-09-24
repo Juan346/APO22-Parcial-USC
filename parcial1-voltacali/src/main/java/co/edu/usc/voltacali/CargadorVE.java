@@ -2,6 +2,8 @@ package co.edu.usc.voltacali;
 
 public class CargadorVE {
 
+    public static final double INCREMENTO_DEFECTO = 1.0;
+
     private String fabricante;
     private int anioInstalacion;
     private int voltajeNominal;
@@ -12,28 +14,44 @@ public class CargadorVE {
     private double potenciaMaxima;
     private Ubicacion ubicacion;
     private double potenciaActual;
+    private String bitacora;
+
+    /* ENUMS ACTUALIZADOS */
 
     public enum TipoConector {
-        TIPO1,
-        TIPO2
+        TIPO_1,
+        TIPO_2,
+        CCS2,
+        CHADEMO,
+        GBT
     }
 
     public enum TipoCargador {
-        LENTO,
-        RAPIDO,
-        ULTRARAPIDO
+        MURAL,
+        PEDESTAL,
+        RAPIDO_DC,
+        ULTRARRAPIDO,
+        PORTATIL,
+        BIDIRECCIONAL_V2G
     }
 
     public enum Ubicacion {
-        NORTE,
-        SUR,
-        CENTRO,
-        OESTE
+        CENTRO_COMERCIAL,
+        UNIVERSIDAD,
+        ESTACION_SERVICIO,
+        PARQUEADERO_PUBLICO,
+        RESIDENCIAL,
+        HOTEL,
+        TERMINAL,
+        FLOTA_CORPORATIVA
     }
 
+    /* CONSTRUCTORES */
+
+    // 1. Constructor completo (9 parámetros)
     public CargadorVE(String fabricante, int anioInstalacion, int voltajeNominal, TipoConector tipoConector,
             TipoCargador tipoCargador, int numeroConectores, int puestosParqueo, double potenciaMaxima,
-            double potenciaActual, Ubicacion ubicacion) {
+            Ubicacion ubicacion) {
         this.fabricante = fabricante;
         this.anioInstalacion = anioInstalacion;
         this.voltajeNominal = voltajeNominal;
@@ -42,23 +60,17 @@ public class CargadorVE {
         this.numeroConectores = numeroConectores;
         this.puestosParqueo = puestosParqueo;
         this.potenciaMaxima = potenciaMaxima;
-        this.potenciaActual = potenciaActual;
-        this.ubicacion = ubicacion;
-    }
-
-    public CargadorVE(String fabricante, int anioInstalacion, double potenciaMaxima) {
-        this.fabricante = fabricante;
-        this.anioInstalacion = anioInstalacion;
-        this.potenciaMaxima = potenciaMaxima;
-        this.voltajeNominal = 220;
-        this.tipoConector = TipoConector.TIPO1;
-        this.tipoCargador = TipoCargador.LENTO;
-        this.numeroConectores = 1;
-        this.puestosParqueo = 1;
         this.potenciaActual = 0.0;
-        this.ubicacion = Ubicacion.NORTE;
+        this.ubicacion = ubicacion;
+        this.bitacora = "";
     }
 
+    // 2. Constructor reducido
+    public CargadorVE(String fabricante, int anioInstalacion, double potenciaMaxima) {
+        this(fabricante, anioInstalacion, 220, TipoConector.TIPO_2, TipoCargador.PEDESTAL, 1, 1, potenciaMaxima, Ubicacion.PARQUEADERO_PUBLICO);
+    }
+
+    // 3. Constructor copia
     public CargadorVE(CargadorVE otro) {
         this.fabricante = otro.fabricante;
         this.anioInstalacion = otro.anioInstalacion;
@@ -68,9 +80,12 @@ public class CargadorVE {
         this.numeroConectores = otro.numeroConectores;
         this.puestosParqueo = otro.puestosParqueo;
         this.potenciaMaxima = otro.potenciaMaxima;
-        this.potenciaActual = otro.potenciaActual;
+        this.potenciaActual = 0.0;
         this.ubicacion = otro.ubicacion;
+        this.bitacora = "";
     }
+
+    /* GETTERS Y SETTERS */
 
     public String getFabricante() {
         return fabricante;
@@ -150,5 +165,135 @@ public class CargadorVE {
 
     public void setPotenciaActual(double potenciaActual) {
         this.potenciaActual = potenciaActual;
+    }
+
+    public String getBitacora() {
+        return bitacora;
+    }
+
+    /* MÉTODOS AUMENTAR POTENCIA */
+
+    public void aumentarPotencia() {
+        aumentarPotencia(INCREMENTO_DEFECTO);
+    }
+
+    public void aumentarPotencia(double incremento) {
+        if (this.potenciaActual + incremento <= this.potenciaMaxima) {
+            this.potenciaActual += incremento;
+        }
+    }
+
+    public void aumentarPotencia(double incremento, int veces) {
+        for (int i = 0; i < veces; i++) {
+            if (this.potenciaActual + incremento <= this.potenciaMaxima) {
+                this.potenciaActual += incremento;
+            } else {
+                break;
+            }
+        }
+    }
+
+    /* MÉTODOS TIEMPO ESTIMADO CARGA */
+
+    public double tiempoEstimadoCarga(double energiaKWh) {
+        if (this.potenciaActual <= 0) {
+            return 0.0;
+        }
+        return energiaKWh / this.potenciaActual;
+    }
+
+    public double tiempoEstimadoCarga(double energiaKWh, double potenciaProgramada) {
+        if (potenciaProgramada <= 0) {
+            return 0.0;
+        }
+        return energiaKWh / potenciaProgramada;
+    }
+
+    public double tiempoEstimadoCarga(double energiaKWh, int pausas, double minutosPorPausa) {
+        double tiempoBase = tiempoEstimadoCarga(energiaKWh);
+        double tiempoPausas = (pausas * minutosPorPausa) / 60.0;
+        return tiempoBase + tiempoPausas;
+    }
+
+    /* MÉTODOS FILTRAR (ESTÁTICOS) */
+
+    public static CargadorVE[] filtrar(CargadorVE[] cargadores, TipoConector conector) {
+        int contador = 0;
+        for (int i = 0; i < cargadores.length; i++) {
+            if (cargadores[i] != null && cargadores[i].getTipoConector() == conector) {
+                contador++;
+            }
+        }
+
+        CargadorVE[] resultado = new CargadorVE[contador];
+        int pos = 0;
+        for (int i = 0; i < cargadores.length; i++) {
+            if (cargadores[i] != null && cargadores[i].getTipoConector() == conector) {
+                resultado[pos] = cargadores[i];
+                pos++;
+            }
+        }
+        return resultado;
+    }
+
+    public static CargadorVE[] filtrar(CargadorVE[] cargadores, TipoCargador tipo) {
+        int contador = 0;
+        for (int i = 0; i < cargadores.length; i++) {
+            if (cargadores[i] != null && cargadores[i].getTipoCargador() == tipo) {
+                contador++;
+            }
+        }
+
+        CargadorVE[] resultado = new CargadorVE[contador];
+        int pos = 0;
+        for (int i = 0; i < cargadores.length; i++) {
+            if (cargadores[i] != null && cargadores[i].getTipoCargador() == tipo) {
+                resultado[pos] = cargadores[i];
+                pos++;
+            }
+        }
+        return resultado;
+    }
+
+    public static CargadorVE[] filtrar(CargadorVE[] cargadores, Ubicacion ubicacion) {
+        int contador = 0;
+        for (int i = 0; i < cargadores.length; i++) {
+            if (cargadores[i] != null && cargadores[i].getUbicacion() == ubicacion) {
+                contador++;
+            }
+        }
+
+        CargadorVE[] resultado = new CargadorVE[contador];
+        int pos = 0;
+        for (int i = 0; i < cargadores.length; i++) {
+            if (cargadores[i] != null && cargadores[i].getUbicacion() == ubicacion) {
+                resultado[pos] = cargadores[i];
+                pos++;
+            }
+        }
+        return resultado;
+    }
+
+    /* MÉTODOS MOSTRAR */
+
+    public void mostrar() {
+        mostrar(false);
+    }
+
+    public void mostrar(boolean detallado) {
+        System.out.println("Fabricante: " + fabricante);
+        System.out.println("Año: " + anioInstalacion);
+        System.out.println("Voltaje: " + voltajeNominal);
+        System.out.println("Tipo Conector: " + tipoConector);
+        System.out.println("Tipo Cargador: " + tipoCargador);
+        System.out.println("Conectores: " + numeroConectores);
+        System.out.println("Puestos: " + puestosParqueo);
+        System.out.println("Potencia Máxima: " + potenciaMaxima);
+        System.out.println("Potencia Actual: " + potenciaActual);
+        System.out.println("Ubicación: " + ubicacion);
+
+        if (detallado) {
+            System.out.println("Bitácora: " + bitacora);
+        }
     }
 }
