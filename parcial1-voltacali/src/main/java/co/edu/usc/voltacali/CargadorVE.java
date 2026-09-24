@@ -1,8 +1,14 @@
 package co.edu.usc.voltacali;
 
+import java.util.Vector;
+
 public class CargadorVE {
 
-    public static final double INCREMENTO_DEFECTO = 1.0;
+    public static final double LIMITE_RED = 50.0;
+    public static final double INCREMENTO_DEFECTO = 5.0;
+    
+    private static int totalCargadores = 0;
+    private static int contadorRegistros = 0;
 
     private String fabricante;
     private int anioInstalacion;
@@ -14,9 +20,8 @@ public class CargadorVE {
     private double potenciaMaxima;
     private Ubicacion ubicacion;
     private double potenciaActual;
-    private String bitacora;
-
-    /* ENUMS */
+    
+    private Vector<RegistroSesion> bitacora;
 
     public enum TipoConector {
         TIPO_1,
@@ -46,7 +51,37 @@ public class CargadorVE {
         FLOTA_CORPORATIVA
     }
 
-    /* CONSTRUCTORES */
+    public class RegistroSesion {
+        private int numeroConsecutivo;
+        private String evento;
+        private boolean valido;
+        private String fabCargador;
+        private int anioCargador;
+        private double potCargador;
+
+        public RegistroSesion(String evento, boolean valido) {
+            contadorRegistros++;
+            this.numeroConsecutivo = contadorRegistros;
+            this.evento = evento;
+            this.valido = valido;
+            this.fabCargador = fabricante;
+            this.anioCargador = anioInstalacion;
+            this.potCargador = potenciaActual;
+        }
+
+        public boolean isValido() {
+            return valido;
+        }
+
+        public double getPotCargador() {
+            return potCargador;
+        }
+
+        public String describir() {
+            return "#" + numeroConsecutivo + " [" + (valido ? "VÁLIDO" : "INVÁLIDO") + "] Evento: " + evento 
+                 + " | Cargador: " + fabCargador + " (" + anioCargador + ") - Potencia: " + potCargador + " kW";
+        }
+    }
 
     public CargadorVE(String fabricante, int anioInstalacion, int voltajeNominal, TipoConector tipoConector,
             TipoCargador tipoCargador, int numeroConectores, int puestosParqueo, double potenciaMaxima,
@@ -61,7 +96,9 @@ public class CargadorVE {
         this.potenciaMaxima = potenciaMaxima;
         this.potenciaActual = 0.0;
         this.ubicacion = ubicacion;
-        this.bitacora = "";
+        this.bitacora = new Vector<>();
+        
+        totalCargadores++;
     }
 
     public CargadorVE(String fabricante, int anioInstalacion, double potenciaMaxima) {
@@ -69,20 +106,9 @@ public class CargadorVE {
     }
 
     public CargadorVE(CargadorVE otro) {
-        this.fabricante = otro.fabricante;
-        this.anioInstalacion = otro.anioInstalacion;
-        this.voltajeNominal = otro.voltajeNominal;
-        this.tipoConector = otro.tipoConector;
-        this.tipoCargador = otro.tipoCargador;
-        this.numeroConectores = otro.numeroConectores;
-        this.puestosParqueo = otro.puestosParqueo;
-        this.potenciaMaxima = otro.potenciaMaxima;
-        this.potenciaActual = 0.0;
-        this.ubicacion = otro.ubicacion;
-        this.bitacora = "";
+        this(otro.fabricante, otro.anioInstalacion, otro.voltajeNominal, otro.tipoConector, 
+             otro.tipoCargador, otro.numeroConectores, otro.puestosParqueo, otro.potenciaMaxima, otro.ubicacion);
     }
-
-    /* GETTERS Y SETTERS */
 
     public String getFabricante() {
         return fabricante;
@@ -162,13 +188,12 @@ public class CargadorVE {
 
     public void setPotenciaActual(double potenciaActual) {
         this.potenciaActual = potenciaActual;
+        this.bitacora.add(new RegistroSesion("Asignar potencia manual: " + potenciaActual, true));
     }
 
-    public String getBitacora() {
+    public Vector<RegistroSesion> getBitacora() {
         return bitacora;
     }
-
-    /* PARTE B: COMPORTAMIENTO BASE Y MÉTODOS DE POTENCIA */
 
     public void aumentarPotencia() {
         aumentarPotencia(INCREMENTO_DEFECTO);
@@ -176,39 +201,39 @@ public class CargadorVE {
 
     public void aumentarPotencia(double incremento) {
         if (this.potenciaActual + incremento > this.potenciaMaxima) {
-            System.out.println("Error: No se puede aumentar la potencia. Superaría la potencia máxima permida (" + this.potenciaMaxima + " kW).");
+            System.out.println("Error: No se puede aumentar la potencia. Superaría la máxima (" + this.potenciaMaxima + " kW).");
+            this.bitacora.add(new RegistroSesion("Intento de aumento fallido (supera potencia máxima)", false));
         } else {
             this.potenciaActual += incremento;
+            this.bitacora.add(new RegistroSesion("Aumento de potencia en " + incremento + " kW", true));
         }
     }
 
     public void aumentarPotencia(double incremento, int veces) {
-        double totalIncremento = incremento * veces;
-        if (this.potenciaActual + totalIncremento > this.potenciaMaxima) {
-            System.out.println("Error: No se puede aplicar el incremento acumulado. Superaría la potencia máxima permida (" + this.potenciaMaxima + " kW).");
-        } else {
-            this.potenciaActual += totalIncremento;
+        for (int i = 0; i < veces; i++) {
+            aumentarPotencia(incremento);
         }
     }
 
     public void reducirPotencia(double decremento) {
         if (this.potenciaActual - decremento < 0) {
-            System.out.println("Error: No se puede reducir la potencia. El resultado no puede ser negativo.");
+            System.out.println("Error: No se puede reducir la potencia a valores negativos.");
+            this.bitacora.add(new RegistroSesion("Intento de reducción fallido (potencia negativa)", false));
         } else {
             this.potenciaActual -= decremento;
+            this.bitacora.add(new RegistroSesion("Reducción de potencia en " + decremento + " kW", true));
         }
     }
 
     public void cortarCarga() {
         this.potenciaActual = 0.0;
-        System.out.println("Carga cortada. Potencia actual establecida en 0.0 kW.");
+        this.bitacora.add(new RegistroSesion("Carga cortada a 0.0 kW", true));
+        System.out.println("Carga cortada.");
     }
-
-    /* TIEMPO ESTIMADO CARGA (SOBRECARGAS) */
 
     public double tiempoEstimadoCarga(double energiaKWh) {
         if (this.potenciaActual <= 0) {
-            System.out.println("Error: La potencia actual es 0 kW. No se puede calcular el tiempo estimado.");
+            System.out.println("Error: La potencia actual es 0 kW.");
             return -1.0;
         }
         return energiaKWh / this.potenciaActual;
@@ -216,7 +241,7 @@ public class CargadorVE {
 
     public double tiempoEstimadoCarga(double energiaKWh, double potenciaProgramada) {
         if (potenciaProgramada <= 0) {
-            System.out.println("Error: La potencia programada es 0 kW o menor. No se puede calcular el tiempo estimado.");
+            System.out.println("Error: La potencia programada es 0 kW o menor.");
             return -1.0;
         }
         return energiaKWh / potenciaProgramada;
@@ -231,9 +256,24 @@ public class CargadorVE {
         return tiempoBase + tiempoPausasHoras;
     }
 
-    /* MÉTODOS ESTÁTICOS FILTRAR */
+    public static int[] contarPorTipo(CargadorVE[] cargadores) {
+        int[] conteo = new int[TipoCargador.values().length];
+        if (cargadores == null) {
+            return conteo;
+        }
+        for (int i = 0; i < cargadores.length; i++) {
+            if (cargadores[i] != null && cargadores[i].getTipoCargador() != null) {
+                int indice = cargadores[i].getTipoCargador().ordinal();
+                conteo[indice]++;
+            }
+        }
+        return conteo;
+    }
 
     public static CargadorVE[] filtrar(CargadorVE[] cargadores, TipoConector conector) {
+        if (cargadores == null) {
+            return new CargadorVE[0];
+        }
         int contador = 0;
         for (int i = 0; i < cargadores.length; i++) {
             if (cargadores[i] != null && cargadores[i].getTipoConector() == conector) {
@@ -253,6 +293,9 @@ public class CargadorVE {
     }
 
     public static CargadorVE[] filtrar(CargadorVE[] cargadores, TipoCargador tipo) {
+        if (cargadores == null) {
+            return new CargadorVE[0];
+        }
         int contador = 0;
         for (int i = 0; i < cargadores.length; i++) {
             if (cargadores[i] != null && cargadores[i].getTipoCargador() == tipo) {
@@ -272,6 +315,9 @@ public class CargadorVE {
     }
 
     public static CargadorVE[] filtrar(CargadorVE[] cargadores, Ubicacion ubicacion) {
+        if (cargadores == null) {
+            return new CargadorVE[0];
+        }
         int contador = 0;
         for (int i = 0; i < cargadores.length; i++) {
             if (cargadores[i] != null && cargadores[i].getUbicacion() == ubicacion) {
@@ -290,7 +336,61 @@ public class CargadorVE {
         return resultado;
     }
 
-    /* MÉTODOS MOSTRAR */
+    public static int getTotalCargadores() {
+        return totalCargadores;
+    }
+
+    public static CargadorVE mayorPotencia(CargadorVE[] cargadores) {
+        if (cargadores == null) {
+            return null;
+        }
+        CargadorVE mayor = null;
+        for (int i = 0; i < cargadores.length; i++) {
+            if (cargadores[i] != null) {
+                if (mayor == null || cargadores[i].getPotenciaActual() > mayor.getPotenciaActual()) {
+                    mayor = cargadores[i];
+                }
+            }
+        }
+        return mayor;
+    }
+
+    public static double promedioPotencia(CargadorVE[] cargadores) {
+        if (cargadores == null) {
+            return 0.0;
+        }
+        double suma = 0.0;
+        int contador = 0;
+        for (int i = 0; i < cargadores.length; i++) {
+            if (cargadores[i] != null) {
+                suma += cargadores[i].getPotenciaActual();
+                contador++;
+            }
+        }
+        if (contador == 0) {
+            return 0.0;
+        }
+        return suma / contador;
+    }
+
+    public static int excesosDePotenciaContratada(CargadorVE[] cargadores) {
+        if (cargadores == null) {
+            return 0;
+        }
+        int conteoExcesos = 0;
+        for (int i = 0; i < cargadores.length; i++) {
+            if (cargadores[i] != null) {
+                Vector<RegistroSesion> listaBitacora = cargadores[i].getBitacora();
+                for (int j = 0; j < listaBitacora.size(); j++) {
+                    RegistroSesion reg = listaBitacora.get(j);
+                    if (reg.isValido() && reg.getPotCargador() > LIMITE_RED) {
+                        conteoExcesos++;
+                    }
+                }
+            }
+        }
+        return conteoExcesos;
+    }
 
     public void mostrar() {
         mostrar(false);
@@ -310,7 +410,14 @@ public class CargadorVE {
         System.out.println("Ubicación: " + ubicacion);
 
         if (detallado) {
-            System.out.println("Bitácora: " + (bitacora.isEmpty() ? "(Sin registros)" : bitacora));
+            System.out.println("--- Bitácora ---");
+            if (bitacora.isEmpty()) {
+                System.out.println("(Sin registros)");
+            } else {
+                for (int i = 0; i < bitacora.size(); i++) {
+                    System.out.println(bitacora.get(i).describir());
+                }
+            }
         }
     }
 }
