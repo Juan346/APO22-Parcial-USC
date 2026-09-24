@@ -78,8 +78,8 @@ public class CargadorVE {
         }
 
         public String describir() {
-            return "#" + numeroConsecutivo + " [" + (valido ? "VÁLIDO" : "INVÁLIDO") + "] Evento: " + evento 
-                 + " | Cargador: " + fabCargador + " (" + anioCargador + ") - Potencia: " + potCargador + " kW";
+            return "#" + numeroConsecutivo + " [" + (valido ? "valido" : "invalido") + "] Evento: " + evento 
+                 + " | Cargadr: " + fabCargador + " (" + anioCargador + ") - Potencia: " + potCargador + " kW";
         }
     }
 
@@ -188,7 +188,7 @@ public class CargadorVE {
 
     public void setPotenciaActual(double potenciaActual) {
         this.potenciaActual = potenciaActual;
-        this.bitacora.add(new RegistroSesion("Asignar potencia manual: " + potenciaActual, true));
+        this.bitacora.add(new RegistroSesion("asignar potencia manual: " + potenciaActual, true));
     }
 
     public Vector<RegistroSesion> getBitacora() {
@@ -201,11 +201,11 @@ public class CargadorVE {
 
     public void aumentarPotencia(double incremento) {
         if (this.potenciaActual + incremento > this.potenciaMaxima) {
-            System.out.println("Error: No se puede aumentar la potencia. Superaría la máxima (" + this.potenciaMaxima + " kW).");
-            this.bitacora.add(new RegistroSesion("Intento de aumento fallido (supera potencia máxima)", false));
+            System.out.println("error: No se puede aumentar la potencia. Superaría la maxima (" + this.potenciaMaxima + " kW).");
+            this.bitacora.add(new RegistroSesion("Intento de aumento fallido (supera potencia maxima)", false));
         } else {
             this.potenciaActual += incremento;
-            this.bitacora.add(new RegistroSesion("Aumento de potencia en " + incremento + " kW", true));
+            this.bitacora.add(new RegistroSesion("Aumento de potencia en " + incremento + " kw", true));
         }
     }
 
@@ -218,22 +218,22 @@ public class CargadorVE {
     public void reducirPotencia(double decremento) {
         if (this.potenciaActual - decremento < 0) {
             System.out.println("Error: No se puede reducir la potencia a valores negativos.");
-            this.bitacora.add(new RegistroSesion("Intento de reducción fallido (potencia negativa)", false));
+            this.bitacora.add(new RegistroSesion("Intento de reducción fallido (potencia negativ)", false));
         } else {
             this.potenciaActual -= decremento;
-            this.bitacora.add(new RegistroSesion("Reducción de potencia en " + decremento + " kW", true));
+            this.bitacora.add(new RegistroSesion("Reducción de potencia en " + decremento + " kw", true));
         }
     }
 
     public void cortarCarga() {
         this.potenciaActual = 0.0;
-        this.bitacora.add(new RegistroSesion("Carga cortada a 0.0 kW", true));
-        System.out.println("Carga cortada.");
+        this.bitacora.add(new RegistroSesion("carga cortada a 0.0 kw", true));
+        System.out.println("carga cortada.");
     }
 
     public double tiempoEstimadoCarga(double energiaKWh) {
         if (this.potenciaActual <= 0) {
-            System.out.println("Error: La potencia actual es 0 kW.");
+            System.out.println("crror: La potencia actual es 0 kw.");
             return -1.0;
         }
         return energiaKWh / this.potenciaActual;
@@ -398,19 +398,19 @@ public class CargadorVE {
 
     public void mostrar(boolean detallado) {
         System.out.println("=== CargadorVE ===");
-        System.out.println("Fabricante: " + fabricante);
-        System.out.println("Año Instalación: " + anioInstalacion);
-        System.out.println("Voltaje Nominal: " + voltajeNominal + " V");
-        System.out.println("Tipo Conector: " + tipoConector);
-        System.out.println("Tipo Cargador: " + tipoCargador);
-        System.out.println("Número Conectores: " + numeroConectores);
-        System.out.println("Puestos Parqueo: " + puestosParqueo);
-        System.out.println("Potencia Máxima: " + potenciaMaxima + " kW");
-        System.out.println("Potencia Actual: " + potenciaActual + " kW");
+        System.out.println("fabricante: " + fabricante);
+        System.out.println("año Instalación: " + anioInstalacion);
+        System.out.println("voltage Nominal: " + voltajeNominal + " V");
+        System.out.println("tipo Conector: " + tipoConector);
+        System.out.println("tipo Cargador: " + tipoCargador);
+        System.out.println("Numero Conectores: " + numeroConectores);
+        System.out.println("puestos parqueo: " + puestosParqueo);
+        System.out.println("potencia maxima: " + potenciaMaxima + " kW");
+        System.out.println("potencia Actual: " + potenciaActual + " kW");
         System.out.println("Ubicación: " + ubicacion);
 
         if (detallado) {
-            System.out.println("--- Bitácora ---");
+            System.out.println("--- Bitcora ---");
             if (bitacora.isEmpty()) {
                 System.out.println("(Sin registros)");
             } else {
